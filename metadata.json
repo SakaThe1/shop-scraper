@@ -1,0 +1,5 @@
+{
+  "name": "ShopScrape AI",
+  "description": "A powerful Shopify product extractor and analyzer powered by Gemini 2.0 Flash. Extract product data, visualize pricing strategies, and generate AI-driven store audits directly in your browser.",
+  "requestFramePermissions": []
+}
