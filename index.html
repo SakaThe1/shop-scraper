@@ -1,0 +1,1501 @@
+<!DOCTYPE html>
+<html lang="en" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shop-Scraper | Enterprise Product Intelligence</title>
+    
+    <!-- Scripts & Frameworks -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Tailwind Config for Custom Colors -->
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        emerald: { 400: '#34d399', 500: '#10b981', 600: '#059669', 700: '#047857', 900: '#064e3b' },
+                        gold: { 400: '#fbbf24', 500: '#f59e0b', 600: '#d97706', 700: '#b45309' },
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        heading: ['Outfit', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style type="text/tailwindcss">
+        body {
+            @apply bg-slate-50 text-slate-800 transition-colors duration-500;
+            overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .dark body {
+            @apply bg-[#020617] text-slate-200;
+        }
+
+        /* Sophisticated Mesh Gradient */
+        .mesh-bg {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1;
+            background: radial-gradient(circle at 50% 30%, rgba(16, 185, 129, 0.12) 0%, rgba(255, 255, 255, 1) 60%);
+            transition: all 0.5s ease;
+        }
+
+        .dark .mesh-bg {
+            background: 
+                radial-gradient(circle at 15% 50%, rgba(16, 185, 129, 0.08) 0%, transparent 50%),
+                radial-gradient(circle at 85% 30%, rgba(217, 119, 6, 0.06) 0%, transparent 50%);
+        }
+
+        /* Refined Glassmorphism */
+        .glass {
+            @apply bg-white/80 border border-slate-200 shadow-sm backdrop-blur-xl transition-all duration-500;
+        }
+
+        .dark .glass {
+            @apply bg-[#0f172a]/70 border-slate-800 shadow-[0_8px_32px_rgba(0,0,0,0.4)];
+        }
+
+        .glass-panel {
+            @apply bg-white/90 border border-slate-200 shadow-sm backdrop-blur-xl;
+        }
+
+        .dark .glass-panel {
+            background: linear-gradient(145deg, rgba(15, 23, 42, 0.8) 0%, rgba(2, 6, 23, 0.9) 100%);
+            @apply border border-slate-800;
+        }
+
+        .glass-hover {
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .glass-hover:hover {
+            @apply border-emerald-500/30 dark:border-emerald-500/40 shadow-xl dark:shadow-[0_20px_50px_rgba(16,185,129,0.2)];
+            transform: translateY(-5px) scale(1.01);
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { @apply bg-slate-300 dark:bg-slate-700 rounded-full; }
+        ::-webkit-scrollbar-thumb:hover { @apply bg-emerald-500 dark:bg-emerald-600; }
+
+        /* Utilities */
+        .text-gradient {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .dark .text-gradient {
+            background: linear-gradient(135deg, #34d399 0%, #10b981 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .text-gradient-gold {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .dark .text-gradient-gold {
+            background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .glow-emerald {
+            box-shadow: 0 0 20px rgba(16, 185, 129, 0.2);
+        }
+        .dark .glow-emerald {
+            box-shadow: 0 0 30px rgba(16, 185, 129, 0.15);
+        }
+
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+            100% { transform: translateY(0px); }
+        }
+        .animate-float { animation: float 6s ease-in-out infinite; }
+        
+        .fade-in { animation: fadeIn 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards; opacity: 0; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(12px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes scan {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+        .animate-scan {
+            position: relative; overflow: hidden;
+        }
+        .animate-scan::after {
+            content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(16, 185, 129, 0.1), transparent);
+            animation: scan 2s infinite;
+        }
+
+        /* Chart Tooltip */
+        .chartjs-tooltip {
+            @apply bg-white/95 dark:bg-[#0f172a]/95 backdrop-blur-md border border-slate-200 dark:border-slate-700 rounded-lg shadow-xl;
+            color: inherit !important;
+        }
+        .dark .chartjs-tooltip {
+            color: #fff !important;
+        }
+        
+        input[type="text"], input[type="email"], textarea {
+            @apply bg-white border-slate-200 text-slate-900 transition-all duration-300;
+        }
+        .dark input[type="text"], .dark input[type="email"], .dark textarea {
+            @apply bg-black/20 border-slate-800 text-white;
+        }
+        input:focus, textarea:focus {
+            @apply border-emerald-500 ring-2 ring-emerald-500/20 outline-none;
+        }
+
+        .mobile-nav-enter { transform: translateY(-10px); opacity: 0; }
+        .mobile-nav-enter-active { transform: translateY(0); opacity: 1; transition: all 0.3s ease; }
+
+    </style>
+</head>
+<body>
+    <div class="mesh-bg"></div>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef, useMemo, useCallback } = React;
+
+        // --- Core UI Components ---
+
+        const LucideIcon = ({ name, size = 20, className = "", strokeWidth }) => {
+            const iconRef = useRef(null);
+            useEffect(() => {
+                if (window.lucide && iconRef.current) {
+                    iconRef.current.innerHTML = `<i data-lucide="${name}"></i>`;
+                    window.lucide.createIcons({ root: iconRef.current });
+                    const svg = iconRef.current.querySelector('svg');
+                    if (svg) {
+                        svg.style.width = size + 'px';
+                        svg.style.height = size + 'px';
+                        if (strokeWidth) svg.setAttribute('stroke-width', strokeWidth);
+                        if (className) {
+                            className.split(' ').forEach(c => {
+                                if (c) svg.classList.add(c);
+                            });
+                        }
+                    }
+                }
+            }, [name, size, className, strokeWidth]);
+            return <span ref={iconRef} className="inline-flex items-center justify-center align-middle" style={{ width: size, height: size, flexShrink: 0 }}></span>;
+        };
+
+        const Card = ({ children, title, icon, className = "", noHover = false, titleColor="text-slate-900 dark:text-white" }) => (
+            <div className={`glass rounded-[2rem] p-8 ${noHover ? '' : 'glass-hover'} ${className}`}>
+                {(title || icon) && (
+                    <div className="flex items-center gap-4 mb-6 border-b border-slate-100 dark:border-slate-800/50 pb-5">
+                        {icon && <div className="p-3 bg-emerald-100/50 dark:bg-emerald-500/10 rounded-2xl text-emerald-600 dark:text-emerald-400 shadow-inner">{icon}</div>}
+                        <h3 className={`text-xl font-bold font-heading tracking-tight ${titleColor}`}>{title}</h3>
+                    </div>
+                )}
+                {children}
+            </div>
+        );
+
+
+        const Button = ({ children, onClick, variant = 'primary', className = "", disabled = false }) => {
+            const baseStyle = "font-medium px-6 py-2.5 rounded-xl transition-all duration-200 flex items-center justify-center gap-2 outline-none";
+            const variants = {
+                primary: "bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-600/20 disabled:opacity-50",
+                gold: "bg-gold-500 hover:bg-gold-400 text-white shadow-lg shadow-gold-500/20 disabled:opacity-50",
+                outline: "bg-white dark:bg-transparent border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-emerald-500 hover:text-emerald-600 dark:hover:text-emerald-400 disabled:opacity-50",
+                ghost: "bg-transparent hover:bg-slate-100 dark:hover:bg-white/5 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white disabled:opacity-50"
+            };
+            return (
+                <button onClick={onClick} disabled={disabled} className={`${baseStyle} ${variants[variant]} ${className}`}>
+                    {children}
+                </button>
+            );
+        };
+
+        const Skeleton = ({ className }) => (
+            <div className={`animate-pulse bg-slate-200 dark:bg-slate-800 rounded-lg ${className}`}></div>
+        );
+
+        // --- Simulated Checkout Modal ---
+        const CheckoutModal = ({ tier, onClose, onComplete }) => {
+            const [loading, setLoading] = useState(false);
+            const [success, setSuccess] = useState(false);
+            const [payMethod, setPayMethod] = useState('card');
+            const [mobileProvider, setMobileProvider] = useState('JazzCash');
+            const [cryptoCoin, setCryptoCoin] = useState('BTC');
+
+            const handlePay = () => {
+                setLoading(true);
+                setTimeout(() => {
+                    setLoading(false);
+                    setSuccess(true);
+                    setTimeout(() => onComplete(), 2500);
+                }, 1500);
+            };
+
+            if (!tier) return null;
+
+            return (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-2 bg-black/60 backdrop-blur-sm fade-in">
+                    <div className="bg-white dark:bg-slate-900 rounded-xl w-full max-w-[320px] shadow-2xl border border-slate-200 dark:border-slate-800 flex flex-col max-h-[95vh]">
+                        {/* Static Header */}
+                        <div className="p-3 bg-gradient-to-r from-emerald-600 to-emerald-500 flex justify-between items-center shrink-0 rounded-t-xl">
+                            <div>
+                                <h3 className="font-black text-base text-white font-heading tracking-tight flex items-center gap-2">
+                                    <LucideIcon name="lock" size={14} className="text-white/80"/> Secure Checkout
+                                </h3>
+                                <p className="text-emerald-100 text-[10px] mt-0.5 font-medium uppercase tracking-widest">{tier.name} • {tier.price}{tier.price !== '$0' ? '/mo' : ''}</p>
+                            </div>
+                            <button onClick={onClose} className="bg-white/20 hover:bg-white/30 text-white rounded-full p-1.5 transition-all hover:rotate-90">
+                                <LucideIcon name="x" size={14}/>
+                            </button>
+                        </div>
+
+                        <div className="flex items-center justify-center gap-4 py-2 bg-slate-50 dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800 shrink-0">
+                            {['Visa','MC','PayPal','Stripe','AMEX'].map(b => (
+                                <span key={b} className="text-[8px] font-black text-slate-400 dark:text-slate-600 uppercase tracking-widest">{b}</span>
+                            ))}
+                        </div>
+
+                        {/* Scrollable Body */}
+                        <div className="p-3 overflow-y-auto flex-grow custom-scrollbar">
+                            {success ? (
+                                <div className="text-center py-6 fade-in">
+                                    <div className="w-16 h-16 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 mx-auto rounded-full flex items-center justify-center mb-4 shadow-[0_0_30px_rgba(16,185,129,0.3)]">
+                                        <LucideIcon name="check" size={32}/>
+                                    </div>
+                                    <h4 className="text-xl font-black text-slate-900 dark:text-white mb-2 font-heading">Payment Successful!</h4>
+                                    <p className="text-slate-500 text-sm">Welcome to Shop-Scraper.<br/>Redirecting to dashboard...</p>
+                                </div>
+                            ) : (
+                                <div className="space-y-4 fade-in">
+                                    <div>
+                                        <div className="grid grid-cols-2 gap-2">
+                                            {[{id:'card',label:'Card',icon:'credit-card'},{id:'paypal',label:'PayPal',icon:'globe'},{id:'crypto',label:'Crypto',icon:'zap'},{id:'mobile',label:'Mobile',icon:'smartphone'}].map(m => (
+                                                <button key={m.id} onClick={() => setPayMethod(m.id)}
+                                                    className={`flex items-center justify-center gap-1.5 py-2 px-2 rounded-lg border-2 transition-all text-xs font-bold ${payMethod === m.id ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400' : 'border-slate-200 dark:border-slate-700 text-slate-500 hover:border-slate-300 dark:hover:border-slate-600'}`}>
+                                                    <LucideIcon name={m.icon} size={14}/>{m.label}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    <div className="flex items-center bg-white dark:bg-black/20 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 focus-within:border-emerald-500 transition-all">
+                                        <LucideIcon name="mail" size={14} className="text-slate-400"/>
+                                        <input type="email" placeholder="you@company.com" className="w-full bg-transparent border-none outline-none focus:ring-0 px-2 py-2 text-xs"/>
+                                    </div>
+
+                                    {payMethod === 'card' && (
+                                        <div className="space-y-2 fade-in">
+                                            <div className="flex items-center bg-white dark:bg-black/20 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 focus-within:border-emerald-500 transition-all">
+                                                <LucideIcon name="credit-card" size={14} className="text-slate-400"/>
+                                                <input type="text" placeholder="1234 5678 9012 3456" className="w-full bg-transparent border-none outline-none focus:ring-0 px-2 py-2 text-xs font-mono"/>
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-2">
+                                                <div className="flex items-center bg-white dark:bg-black/20 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 focus-within:border-emerald-500 transition-all">
+                                                    <LucideIcon name="calendar" size={14} className="text-slate-400"/>
+                                                    <input type="text" placeholder="MM/YY" className="w-full bg-transparent border-none outline-none focus:ring-0 px-2 py-2 text-xs font-mono"/>
+                                                </div>
+                                                <div className="flex items-center bg-white dark:bg-black/20 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 focus-within:border-emerald-500 transition-all">
+                                                    <LucideIcon name="shield" size={14} className="text-slate-400"/>
+                                                    <input type="text" placeholder="CVC" className="w-full bg-transparent border-none outline-none focus:ring-0 px-2 py-2 text-xs font-mono"/>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center bg-white dark:bg-black/20 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 focus-within:border-emerald-500 transition-all">
+                                                <LucideIcon name="user" size={14} className="text-slate-400"/>
+                                                <input type="text" placeholder="Cardholder Name" className="w-full bg-transparent border-none outline-none focus:ring-0 px-2 py-2 text-xs"/>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {payMethod === 'paypal' && (
+                                        <div className="fade-in text-center py-4 bg-[#003087]/5 dark:bg-[#003087]/10 border-2 border-dashed border-[#003087]/20 rounded-xl space-y-2">
+                                            <div className="w-12 h-12 bg-[#003087] rounded-xl flex items-center justify-center mx-auto shadow-lg shadow-[#003087]/30">
+                                                <LucideIcon name="globe" size={24} className="text-white"/>
+                                            </div>
+                                            <h4 className="font-black text-slate-900 dark:text-white text-sm">PayPal</h4>
+                                            <p className="text-xs text-slate-500 px-2">You'll be securely redirected to PayPal.</p>
+                                        </div>
+                                    )}
+
+                                    {payMethod === 'crypto' && (
+                                        <div className="fade-in space-y-2">
+                                            <div className="grid grid-cols-3 gap-2">
+                                                {[{name:'Bitcoin',sym:'BTC',color:'#F7931A'},{name:'Ethereum',sym:'ETH',color:'#627EEA'},{name:'USDT',sym:'USDT',color:'#26A17B'}].map(c => (
+                                                    <button key={c.sym} onClick={() => setCryptoCoin(c.sym)} className={`flex flex-col items-center gap-0.5 py-2 rounded-lg border-2 transition-all text-[10px] font-bold ${cryptoCoin === c.sym ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-500/10' : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 text-slate-700 dark:text-slate-300'}`}>
+                                                        <span className="text-base font-black" style={{color:c.color}}>{c.sym}</span>{c.name}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                            <div className="flex items-center bg-white dark:bg-black/20 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 focus-within:border-emerald-500 transition-all">
+                                                <LucideIcon name="wallet" size={14} className="text-slate-400"/>
+                                                <input type="text" placeholder="Your wallet address" className="w-full bg-transparent border-none outline-none focus:ring-0 px-2 py-2 text-xs font-mono"/>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {payMethod === 'mobile' && (
+                                        <div className="fade-in space-y-2">
+                                            <div className="grid grid-cols-2 gap-2">
+                                                {['JazzCash','EasyPaisa','M-Pesa','bKash'].map(p => (
+                                                    <button key={p} onClick={() => setMobileProvider(p)}
+                                                        className={`py-2 rounded-lg border-2 transition-all text-xs font-bold ${mobileProvider === p ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400' : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-600'}`}>
+                                                        {p}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                            <div className="flex items-center bg-white dark:bg-black/20 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 focus-within:border-emerald-500 transition-all">
+                                                <LucideIcon name="phone" size={14} className="text-slate-400"/>
+                                                <input type="text" placeholder={`${mobileProvider} number`} className="w-full bg-transparent border-none outline-none focus:ring-0 px-2 py-2 text-xs"/>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    <button onClick={handlePay} disabled={loading}
+                                        className={`w-full py-2.5 rounded-xl font-black text-white text-base transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg flex items-center justify-center gap-2 bg-gradient-to-r from-emerald-600 to-emerald-500 shadow-emerald-500/30 disabled:opacity-60`}>
+                                        {loading ? <LucideIcon name="loader-2" className="animate-spin" size={18}/> : <LucideIcon name="lock" size={18}/>}
+                                        {loading ? 'Processing...' : `Pay ${tier.price}`}
+                                    </button>
+
+                                    <div className="flex items-center justify-center gap-4 pt-1">
+                                        {[{icon:'shield-check',label:'SSL'},{icon:'lock',label:'PCI DSS'}].map(t => (
+                                            <div key={t.label} className="flex items-center gap-1 text-[9px] text-slate-400 font-medium">
+                                                <LucideIcon name={t.icon} size={10} className="text-emerald-500"/>{t.label}
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // --- Marketing & Content Sections ---
+
+        const Navbar = ({ currentRoute, setCurrentRoute, theme, toggleTheme, user, onLogout }) => {
+            const [isOpen, setIsOpen] = useState(false);
+            const [scrolled, setScrolled] = useState(false);
+
+            useEffect(() => {
+                const handleScroll = () => setScrolled(window.scrollY > 20);
+                window.addEventListener('scroll', handleScroll);
+                return () => window.removeEventListener('scroll', handleScroll);
+            }, []);
+
+            const navItems = [
+                { id: 'home', label: 'Platform' },
+                { id: 'about', label: 'About Us' },
+                { id: 'pricing', label: 'Pricing' },
+                { id: 'reviews', label: 'Reviews' },
+                { id: 'contact', label: 'Contact' }
+            ];
+
+            const navBg = scrolled 
+                ? 'bg-white/95 dark:bg-[#020617]/95 backdrop-blur-xl border-b border-slate-200 dark:border-slate-800 shadow-sm' 
+                : 'bg-transparent border-b border-transparent';
+
+            return (
+                <nav className={`fixed top-0 w-full z-50 transition-all duration-300 ${navBg}`}>
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                        <div className="flex items-center justify-between h-20">
+                            <div className="flex-shrink-0 flex items-center gap-2 cursor-pointer" onClick={() => setCurrentRoute('home')}>
+                                <div className="bg-emerald-100 dark:bg-emerald-500/20 p-2 rounded-xl text-emerald-600 dark:text-emerald-400">
+                                    <LucideIcon name="shopping-bag" size={24} />
+                                </div>
+                                <span className="font-heading font-extrabold text-2xl text-slate-900 dark:text-white tracking-tight">Shop<span className="text-emerald-600 dark:text-emerald-500">-Scraper</span></span>
+                            </div>
+                            
+                            <div className="hidden md:flex items-center">
+                                <div className="ml-10 flex items-baseline space-x-1">
+                                    {navItems.map(item => (
+                                        <button 
+                                            key={item.id}
+                                            onClick={() => setCurrentRoute(item.id)}
+                                            className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${currentRoute === item.id ? 'text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10' : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5'}`}
+                                        >
+                                            {item.label}
+                                        </button>
+                                    ))}
+                                    <div className="h-6 w-px bg-slate-300 dark:bg-slate-700 mx-2"></div>
+                                    {user ? (
+                                        <div className="flex items-center gap-4 ml-2 mr-2">
+                                            <div className="flex items-center gap-2 bg-slate-100 dark:bg-white/5 px-3 py-1.5 rounded-full border border-slate-200 dark:border-white/10">
+                                                <div className="w-7 h-7 rounded-full bg-emerald-500 text-white flex items-center justify-center text-xs font-bold uppercase">
+                                                    {user.name ? user.name.charAt(0) : 'U'}
+                                                </div>
+                                                <span className="text-sm font-bold text-slate-700 dark:text-slate-300 max-w-[100px] truncate">{user.name || user.email}</span>
+                                            </div>
+                                            <button onClick={onLogout} className="text-slate-500 hover:text-red-500 dark:text-slate-400 dark:hover:text-red-400 transition-colors" title="Log Out">
+                                                <LucideIcon name="log-out" size={18} />
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <button onClick={() => setCurrentRoute('login')} className="px-5 py-2 bg-emerald-600 text-white rounded-lg text-sm font-bold hover:bg-emerald-500 transition-all shadow-md shadow-emerald-600/20 mr-2">Login</button>
+                                    )}
+                                    <button onClick={toggleTheme} className="p-2 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-white/5 transition-colors">
+                                        <LucideIcon name={theme === 'dark' ? 'sun' : 'moon'} size={20} />
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <div className="md:hidden flex items-center gap-2">
+                                <button onClick={toggleTheme} className="p-2 rounded-lg text-slate-500 bg-slate-100 dark:bg-white/5">
+                                    <LucideIcon name={theme === 'dark' ? 'sun' : 'moon'} size={20} />
+                                </button>
+                                <button onClick={() => setIsOpen(!isOpen)} className="text-slate-600 dark:text-slate-300 p-2">
+                                    <LucideIcon name={isOpen ? "x" : "menu"} size={28} />
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    {isOpen && (
+                        <div className="md:hidden bg-white/95 dark:bg-[#020617]/95 backdrop-blur-xl border-b border-slate-200 dark:border-slate-800 shadow-2xl absolute w-full pb-6 animate-fadeIn">
+                            <div className="px-4 pt-2 space-y-2 flex flex-col">
+                                {navItems.map(item => (
+                                    <button 
+                                        key={item.id}
+                                        onClick={() => { setCurrentRoute(item.id); setIsOpen(false); }}
+                                        className={`block px-5 py-4 rounded-2xl text-base font-bold text-left transition-all ${currentRoute === item.id ? 'text-emerald-700 dark:text-emerald-400 bg-emerald-100/50 dark:bg-emerald-500/10' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/5'}`}
+                                    >
+                                        {item.label}
+                                    </button>
+                                ))}
+                                {user ? (
+                                    <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-800">
+                                        <div className="flex items-center gap-3 px-5 py-2">
+                                            <div className="w-10 h-10 rounded-full bg-emerald-500 text-white flex items-center justify-center font-bold text-lg uppercase">
+                                                {user.name ? user.name.charAt(0) : 'U'}
+                                            </div>
+                                            <div>
+                                                <p className="font-bold text-slate-900 dark:text-white">{user.name}</p>
+                                                <p className="text-xs text-slate-500">{user.email}</p>
+                                            </div>
+                                        </div>
+                                        <button onClick={() => { onLogout(); setIsOpen(false); }} className="w-full text-left px-5 py-3 mt-2 rounded-xl text-red-600 dark:text-red-400 font-bold hover:bg-red-50 dark:hover:bg-red-500/10 flex items-center gap-2 transition-colors">
+                                            <LucideIcon name="log-out" size={18} /> Log Out
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <button 
+                                        onClick={() => { setCurrentRoute('login'); setIsOpen(false); }}
+                                        className="block px-5 py-4 rounded-2xl text-base font-bold text-left text-emerald-600 bg-emerald-50 mt-2"
+                                    >
+                                        Login
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
+                </nav>
+            );
+        };
+
+        const UseCaseMatrix = () => (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl mx-auto mt-16 mb-8 px-4 fade-in">
+                <Card title="Competitor Analysis" icon={<LucideIcon name="crosshair" />} noHover>
+                    <p className="text-slate-600 dark:text-slate-400 text-sm leading-relaxed">Instantly reverse-engineer any competitor's pricing strategy and catalog structure. Spot inventory gaps and outprice the market with precision data.</p>
+                </Card>
+                <Card title="Supplier Vetting" icon={<LucideIcon name="shield-check" className="text-gold-500"/>} noHover titleColor="text-gold-600 dark:text-gold-400">
+                    <p className="text-slate-600 dark:text-slate-400 text-sm leading-relaxed">Leverage our Trust Score ML model to identify dropshipping footprints, fake reviews, and low-quality vendor patterns automatically.</p>
+                </Card>
+                <Card title="Investment Research" icon={<LucideIcon name="trending-up" />} noHover>
+                    <p className="text-slate-600 dark:text-slate-400 text-sm leading-relaxed">Generate predictive trend models and export entire store databases to Excel or Airtable for deep due diligence on e-commerce acquisitions.</p>
+                </Card>
+            </div>
+        );
+
+        const AboutSection = () => (
+            <div className="py-32 fade-in">
+                <div className="text-center mb-16">
+                    <h2 className="text-4xl md:text-5xl font-heading font-extrabold text-slate-900 dark:text-white mb-6">Empowering <span className="text-gradient">E-Commerce Intelligence</span></h2>
+                    <p className="text-slate-600 dark:text-slate-400 max-w-2xl mx-auto text-lg md:text-xl">We build enterprise-grade data extraction tools that demystify competitor strategies.</p>
+                </div>
+                <div className="grid md:grid-cols-2 gap-12 items-center max-w-6xl mx-auto px-4 mb-20">
+                    <div className="glass-panel p-10 rounded-3xl relative overflow-hidden">
+                        <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 blur-3xl rounded-full"></div>
+                        <h3 className="text-3xl font-bold mb-6 text-emerald-700 dark:text-emerald-400 font-heading relative z-10">Our Mission</h3>
+                        <p className="text-slate-700 dark:text-slate-300 text-lg leading-relaxed mb-8 relative z-10">
+                            At Shop-Scraper, we believe that market intelligence shouldn't be locked behind complex technical barriers. Our mission is to democratize e-commerce data, providing brand owners, dropshippers, and analysts with instantaneous clarity into any Shopify storefront's operations, pricing strategies, and inventory depth.
+                        </p>
+                        <div className="space-y-5 relative z-10">
+                            {['Zero coding required for full extraction', 'Instant data processing & visualization', 'Ethical & secure public data aggregation'].map((feature, i) => (
+                                <div key={i} className="flex items-center gap-4">
+                                    <div className="bg-emerald-100 dark:bg-emerald-500/20 p-1.5 rounded-full text-emerald-600 dark:text-emerald-400">
+                                        <LucideIcon name="check" size={16} strokeWidth={3} />
+                                    </div>
+                                    <span className="text-slate-800 dark:text-slate-200 font-medium">{feature}</span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-6">
+                        {[
+                            { val: "5M+", label: "Products Analyzed", color: "border-t-emerald-500" },
+                            { val: "99%", label: "Data Accuracy", color: "border-t-gold-500" },
+                            { val: "24/7", label: "Engine Uptime", color: "border-t-emerald-500" },
+                            { val: "120+", label: "Countries Served", color: "border-t-gold-500" }
+                        ].map((stat, i) => (
+                            <div key={i} className={`glass p-8 rounded-[2rem] text-center flex flex-col justify-center border-t-4 ${stat.color} shadow-xl hover:scale-[1.05] transition-all duration-500 group`}>
+                                <h4 className="text-5xl font-black text-slate-900 dark:text-white mb-2 font-heading group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">{stat.val}</h4>
+                                <p className="text-slate-500 dark:text-slate-400 font-bold text-xs uppercase tracking-[0.2em]">{stat.label}</p>
+                            </div>
+                        ))}
+                    </div>
+
+                </div>
+                <UseCaseMatrix />
+            </div>
+        );
+
+        const PricingSection = ({ onCheckout }) => {
+            const tiers = [
+                { name: "Free Plan", price: "$0", desc: "Basic tools for small shops", features: ["250 products per scrape", "CSV & Excel Export", "Standard Support"], button: "Start Free", variant: "outline" },
+                { name: "Premium Plan", price: "$29", desc: "Enterprise-grade intelligence", features: ["Unlimited products", "AI Trust Audit", "Trend Charts", "Priority Support"], button: "Upgrade to Premium", variant: "gold", popular: true }
+            ];
+
+            return (
+                <div className="py-32 fade-in px-4">
+                    <div className="text-center mb-16">
+                        <h2 className="text-4xl md:text-5xl font-heading font-extrabold text-slate-900 dark:text-white mb-6">Simple, <span className="text-gradient">Transparent Pricing</span></h2>
+                        <p className="text-slate-600 dark:text-slate-400 max-w-2xl mx-auto text-lg md:text-xl">Choose the perfect plan to scale your market research.</p>
+                    </div>
+                    <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto items-center">
+                        {tiers.map((tier, i) => (
+                            <div key={i} className={`relative rounded-[2rem] p-8 flex flex-col transition-all duration-500 ${tier.popular ? 'bg-white dark:bg-slate-900 border-2 border-gold-500 shadow-xl shadow-gold-900/10' : 'glass border-transparent hover:border-emerald-500/30'}`}>
+                                {tier.popular && <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-gold-500 text-white px-5 py-2 rounded-full text-[10px] font-black uppercase tracking-[0.2em] shadow-lg shadow-gold-500/40 whitespace-nowrap z-10">Most Popular</div>}
+
+                                <h3 className={`text-2xl font-bold font-heading mb-2 ${tier.popular ? 'text-gold-600 dark:text-gold-400' : 'text-slate-900 dark:text-white'}`}>{tier.name}</h3>
+                                <p className="text-slate-500 dark:text-slate-400 text-sm mb-8 h-10">{tier.desc}</p>
+                                <div className="mb-8 flex items-baseline gap-2">
+                                    <span className={`text-5xl font-extrabold tracking-tight ${tier.popular ? 'text-slate-900 dark:text-white' : 'text-slate-900 dark:text-white'}`}>{tier.price}</span>
+                                    {tier.price !== "$0" && <span className="text-slate-500 font-medium">/mo</span>}
+                                </div>
+                                <ul className="space-y-4 mb-8 flex-grow">
+                                    {tier.features.map((f, idx) => (
+                                        <li key={idx} className="flex items-start gap-3">
+                                            <div className={`mt-0.5 rounded-full p-1 ${tier.popular ? "bg-gold-100 dark:bg-gold-500/20 text-gold-600 dark:text-gold-400" : "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400"}`}>
+                                                <LucideIcon name="check" size={14} strokeWidth={3} />
+                                            </div>
+                                            <span className="text-slate-700 dark:text-slate-300 text-sm font-medium">{f}</span>
+                                        </li>
+                                    ))}
+                                </ul>
+                                <Button 
+                                    variant={tier.variant} 
+                                    className="w-full py-3.5 text-base"
+                                    onClick={() => onCheckout(tier)}
+                                >
+                                    {tier.button}
+                                </Button>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            );
+        };
+
+        const ReviewsSection = () => {
+            const [reviews, setReviews] = useState([
+                { name: "Sarah J.", role: "E-com Founder", text: "Shop-Scraper completely changed how we price our products. The predictive trend analysis is game-changing. We increased margins by 12% in month one.", rating: 5 },
+                { name: "Marcus T.", role: "Data Analyst", text: "The Trust Score ML model is scary accurate. It identified dropshipping patterns on a target acquisition instantly, saving us from a bad investment.", rating: 5 },
+                { name: "Elena V.", role: "Dropshipping Pro", text: "Minimalist, incredibly fast, and reliable. Best tool I've used for Shopify reconnaissance. The Excel export is perfectly formatted.", rating: 5 }
+            ]);
+
+            const [newReview, setNewReview] = useState({ name: '', text: '', rating: 5 });
+
+            const handleSubmit = (e) => {
+                e.preventDefault();
+                if (!newReview.name || !newReview.text) return;
+                setReviews([ { ...newReview, role: "Community User" }, ...reviews]);
+                setNewReview({ name: '', text: '', rating: 5 });
+            };
+
+            return (
+                <div className="py-32 fade-in px-4">
+                    <div className="text-center mb-16">
+                        <h2 className="text-4xl md:text-5xl font-heading font-extrabold text-slate-900 dark:text-white mb-6">User <span className="text-gradient">Feedback</span></h2>
+                        <p className="text-slate-600 dark:text-slate-400 max-w-2xl mx-auto text-lg">See what others are saying or leave your own review.</p>
+                    </div>
+
+                    <div className="max-w-4xl mx-auto mb-20 glass-panel p-8 rounded-3xl shadow-xl">
+                        <h3 className="text-2xl font-bold mb-6 font-heading">Leave a Review</h3>
+                        <form onSubmit={handleSubmit} className="space-y-4">
+                            <div className="grid md:grid-cols-2 gap-4">
+                                <input 
+                                    type="text" placeholder="Your Name" 
+                                    className="w-full rounded-xl px-4 py-3" 
+                                    value={newReview.name} 
+                                    onChange={e => setNewReview({...newReview, name: e.target.value})}
+                                />
+                                <div className="flex items-center gap-2 px-4 py-3 bg-white dark:bg-black/20 rounded-xl border border-slate-200 dark:border-slate-800">
+                                    <span className="text-sm font-bold text-slate-500">Rating:</span>
+                                    <div className="flex gap-1">
+                                        {[1,2,3,4,5].map(s => (
+                                            <button key={s} type="button" onClick={() => setNewReview({...newReview, rating: s})}>
+                                                <LucideIcon name="star" className={s <= newReview.rating ? "text-gold-400 fill-gold-400" : "text-slate-200"} size={18} />
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                            <textarea 
+                                placeholder="Your Feedback..." rows="3" 
+                                className="w-full rounded-xl px-4 py-3 resize-none"
+                                value={newReview.text}
+                                onChange={e => setNewReview({...newReview, text: e.target.value})}
+                            ></textarea>
+                            <Button variant="primary" className="w-full">Submit Review</Button>
+                        </form>
+                    </div>
+
+                    <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+                        {reviews.map((r, i) => (
+                            <Card key={i} className="flex flex-col h-full border-t-4 border-t-emerald-500 shadow-lg">
+                                <div className="flex gap-1 mb-6">
+                                    {[...Array(5)].map((_, idx) => (
+                                        <LucideIcon key={idx} name="star" className={idx < r.rating ? "text-gold-400 fill-gold-400" : "text-slate-200 dark:text-slate-700"} size={18} />
+                                    ))}
+                                </div>
+                                <p className="text-slate-700 dark:text-slate-300 text-lg leading-relaxed mb-8 flex-grow">"{r.text}"</p>
+                                <div className="flex items-center gap-4 border-t border-slate-100 dark:border-slate-800 pt-4">
+                                    <div className="w-12 h-12 rounded-full bg-emerald-100 dark:bg-emerald-900/50 flex items-center justify-center text-emerald-700 dark:text-emerald-400 font-extrabold text-xl">
+                                        {r.name.charAt(0)}
+                                    </div>
+                                    <div>
+                                        <h4 className="text-slate-900 dark:text-white font-bold">{r.name}</h4>
+                                        <p className="text-slate-500 text-sm font-medium">{r.role}</p>
+                                    </div>
+                                </div>
+                            </Card>
+                        ))}
+                    </div>
+                </div>
+            );
+        };
+
+        const ContactSection = () => (
+            <div className="py-32 fade-in px-4 relative">
+                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-3/4 h-3/4 bg-emerald-500/5 blur-[120px] rounded-full z-0 pointer-events-none"></div>
+                 <div className="max-w-4xl mx-auto relative z-10">
+                    <div className="text-center mb-12">
+                        <h2 className="text-4xl md:text-5xl font-heading font-extrabold text-slate-900 dark:text-white mb-6">Get in <span className="text-gradient">Touch</span></h2>
+                        <p className="text-slate-600 dark:text-slate-400 text-lg md:text-xl">Have questions about our Enterprise plans or API access? Send us a message.</p>
+                    </div>
+                    <form className="glass-panel p-8 md:p-12 rounded-3xl space-y-6 shadow-2xl" onSubmit={(e) => e.preventDefault()}>
+                        <div className="grid md:grid-cols-2 gap-8">
+                            <div className="space-y-2">
+                                <label className="text-sm text-slate-700 dark:text-slate-300 font-bold uppercase tracking-wider">First Name</label>
+                                <input type="text" className="w-full rounded-xl px-5 py-4 transition-all focus:ring-2 focus:ring-emerald-500" placeholder="John" />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-sm text-slate-700 dark:text-slate-300 font-bold uppercase tracking-wider">Last Name</label>
+                                <input type="text" className="w-full rounded-xl px-5 py-4 transition-all focus:ring-2 focus:ring-emerald-500" placeholder="Doe" />
+                            </div>
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-sm text-slate-700 dark:text-slate-300 font-bold uppercase tracking-wider">Email Address</label>
+                            <input type="email" className="w-full rounded-xl px-5 py-4 transition-all focus:ring-2 focus:ring-emerald-500" placeholder="john@company.com" />
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-sm text-slate-700 dark:text-slate-300 font-bold uppercase tracking-wider">Message</label>
+                            <textarea rows="5" className="w-full rounded-xl px-5 py-4 transition-all resize-none focus:ring-2 focus:ring-emerald-500" placeholder="How can we help you scale?"></textarea>
+                        </div>
+                        <Button variant="primary" className="w-full py-5 text-lg font-bold shadow-xl">Send Message <LucideIcon name="send" size={20}/></Button>
+                    </form>
+                 </div>
+            </div>
+        );
+
+        // --- Application / Tool Section ---
+
+        const ScraperTool = ({ theme }) => {
+            const [url, setUrl] = useState("");
+            const [loading, setLoading] = useState(false);
+            const [data, setData] = useState(null);
+            const [error, setError] = useState(null);
+            const [audit, setAudit] = useState(null);
+            const [trustScore, setTrustScore] = useState(null);
+            const [view, setView] = useState("dashboard"); 
+            const [chartMode, setChartMode] = useState("distribution"); 
+
+            // Inventory Smart Table State
+            const [searchTerm, setSearchTerm] = useState("");
+            const [sortConfig, setSortConfig] = useState({ key: 'price', direction: 'desc' });
+            const [currentPage, setCurrentPage] = useState(1);
+            const itemsPerPage = 15;
+
+            const chartRef = useRef(null);
+            const chartInstance = useRef(null);
+
+            const handleScrape = async () => {
+                if (!url) return;
+                setLoading(true); setError(null); setData(null); setAudit(null); setTrustScore(null);
+                setSearchTerm(""); setCurrentPage(1);
+
+                try {
+                    let targetUrl = url.trim();
+                    if (!targetUrl.startsWith('http')) targetUrl = 'https://' + targetUrl;
+                    const urlObj = new URL(targetUrl);
+                    const productsUrl = `${urlObj.origin}${urlObj.pathname.replace(/\/$/, '')}/products.json?limit=250`;
+
+                    // Simulated extraction delay for UX
+                    await new Promise(r => setTimeout(r, 1500));
+
+                    const response = await fetch(productsUrl);
+                    if (!response.ok) throw new Error("Could not access data. The store might have blocked public access or the URL is invalid.");
+                    const json = await response.json();
+
+                    if (!json.products || json.products.length === 0) throw new Error("No products found at this store.");
+
+                    setData({ products: json.products, shopUrl: urlObj.origin, fetchedAt: new Date().toLocaleString() });
+                    generateMockAudit(json.products);
+                    generateTrustScore(json.products);
+                    setView("dashboard");
+                } catch (err) {
+                    setError(err.message);
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            const generateMockAudit = (products) => {
+                const avgPrice = products.reduce((acc, p) => acc + parseFloat(p.variants[0].price), 0) / products.length;
+                setAudit({
+                    niche: products[0].product_type || "General Retail",
+                    priceStrategy: avgPrice > 100 ? "Premium/High-Ticket" : "Competitive/Volume",
+                    targetAudience: "Niche specific enthusiasts seeking quality.",
+                    score: Math.floor(Math.random() * (98 - 75 + 1)) + 75,
+                    suggestions: [
+                        "Optimize product image ALT tags to capture long-tail search traffic.",
+                        `Average pricing ($${avgPrice.toFixed(0)}) indicates room for premium bundling.`,
+                        "Consider reducing variant complexity on top-performing SKUs."
+                    ]
+                });
+            };
+
+            const generateTrustScore = (products) => {
+                let score = 100;
+                const vendors = new Set(products.map(p => p.vendor));
+                if (vendors.size > 15) score -= 25; 
+                
+                const hasDefaultTitle = products.some(p => p.variants.some(v => v.title.toLowerCase() === 'default title'));
+                if (hasDefaultTitle) score -= 15; 
+
+                const hasEmptyTags = products.some(p => !p.tags || p.tags.length === 0);
+                if(hasEmptyTags) score -= 10;
+
+                score -= Math.floor(Math.random() * 10); 
+
+                setTrustScore({
+                    score: Math.max(10, score),
+                    metrics: [
+                        { label: "Vendor Consolidation", passed: vendors.size < 5, desc: "High vendor count suggests unvetted dropshipping." },
+                        { label: "Variant Hygiene", passed: !hasDefaultTitle, desc: "Presence of 'Default Title' variants indicates rushed cataloging." },
+                        { label: "Metadata Enrichment", passed: !hasEmptyTags, desc: "Lack of product tags hurts SEO and internal search." }
+                    ]
+                });
+            };
+
+            // Smart Table Logic
+            const filteredAndSortedProducts = useMemo(() => {
+                if (!data) return [];
+                let p = [...data.products];
+
+                if (searchTerm) {
+                    const lower = searchTerm.toLowerCase();
+                    p = p.filter(item => 
+                        item.title.toLowerCase().includes(lower) || 
+                        (item.vendor && item.vendor.toLowerCase().includes(lower)) ||
+                        (item.product_type && item.product_type.toLowerCase().includes(lower))
+                    );
+                }
+
+                if (sortConfig.key) {
+                    p.sort((a, b) => {
+                        if (sortConfig.key === 'price') {
+                            const valA = parseFloat(a.variants[0].price);
+                            const valB = parseFloat(b.variants[0].price);
+                            return sortConfig.direction === 'asc' ? valA - valB : valB - valA;
+                        } else {
+                            const valA = (sortConfig.key === 'type' ? a.product_type : a[sortConfig.key]) || '';
+                            const valB = (sortConfig.key === 'type' ? b.product_type : b[sortConfig.key]) || '';
+                            return sortConfig.direction === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+                        }
+                    });
+                }
+                return p;
+            }, [data, searchTerm, sortConfig]);
+
+            const paginatedProducts = useMemo(() => {
+                const start = (currentPage - 1) * itemsPerPage;
+                return filteredAndSortedProducts.slice(start, start + itemsPerPage);
+            }, [filteredAndSortedProducts, currentPage]);
+
+            const totalPages = Math.ceil(filteredAndSortedProducts.length / itemsPerPage);
+
+            const handleSort = (key) => {
+                let direction = 'asc';
+                if (sortConfig.key === key && sortConfig.direction === 'asc') direction = 'desc';
+                setSortConfig({ key, direction });
+                setCurrentPage(1);
+            };
+
+            const SortIcon = ({ column }) => {
+                if (sortConfig.key !== column) return <LucideIcon name="arrow-up-down" size={12} className="opacity-30 inline ml-1" />;
+                return sortConfig.direction === 'asc' 
+                    ? <LucideIcon name="chevron-up" size={14} className="inline ml-1 text-emerald-600 dark:text-emerald-400" />
+                    : <LucideIcon name="chevron-down" size={14} className="inline ml-1 text-emerald-600 dark:text-emerald-400" />;
+            };
+
+            const exportCSV = () => {
+                if (!data) return;
+                const csvData = data.products.map(p => ({
+                    Title: p.title, Price: p.variants[0].price, Vendor: p.vendor, Type: p.product_type, Link: `${data.shopUrl}/products/${p.handle}`
+                }));
+                const csv = Papa.unparse(csvData);
+                const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement("a");
+                link.href = URL.createObjectURL(blob);
+                link.download = `shopscraper_${new Date().getTime()}.csv`;
+                link.click();
+            };
+
+            const exportExcel = () => {
+                if (!data || !window.XLSX) return;
+                const excelData = data.products.map(p => ({
+                    Title: p.title, Price: parseFloat(p.variants[0].price), Vendor: p.vendor, Type: p.product_type, Link: `${data.shopUrl}/products/${p.handle}`
+                }));
+                const worksheet = XLSX.utils.json_to_sheet(excelData);
+                const workbook = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(workbook, worksheet, "Inventory Data");
+                XLSX.writeFile(workbook, `shopscraper_${new Date().getTime()}.xlsx`);
+            };
+
+            const stats = useMemo(() => {
+                if (!data) return null;
+                const prices = data.products.map(p => parseFloat(p.variants[0].price));
+                return {
+                    total: data.products.length,
+                    avg: (prices.reduce((a, b) => a + b, 0) / prices.length).toFixed(2),
+                    min: Math.min(...prices).toFixed(2),
+                    max: Math.max(...prices).toFixed(2)
+                };
+            }, [data]);
+
+            // Chart Logic
+            useEffect(() => {
+                if (data && view === 'dashboard' && chartRef.current) {
+                    if (chartInstance.current) chartInstance.current.destroy();
+                    
+                    const ctx = chartRef.current.getContext('2d');
+                    const isDark = theme === 'dark';
+                    const textColor = isDark ? '#94a3b8' : '#475569';
+                    const gridColor = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
+
+                    if (chartMode === 'distribution') {
+                        const priceRanges = { "0-25": 0, "25-50": 0, "50-100": 0, "100-250": 0, "250+": 0 };
+                        data.products.forEach(p => {
+                            const price = parseFloat(p.variants[0].price);
+                            if (price < 25) priceRanges["0-25"]++;
+                            else if (price < 50) priceRanges["25-50"]++;
+                            else if (price < 100) priceRanges["50-100"]++;
+                            else if (price < 250) priceRanges["100-250"]++;
+                            else priceRanges["250+"]++;
+                        });
+
+                        const gradient = ctx.createLinearGradient(0, 0, 0, 300);
+                        gradient.addColorStop(0, 'rgba(16, 185, 129, 0.8)'); 
+                        gradient.addColorStop(1, 'rgba(16, 185, 129, 0.1)');
+
+                        chartInstance.current = new Chart(ctx, {
+                            type: 'bar',
+                            data: {
+                                labels: Object.keys(priceRanges),
+                                datasets: [{
+                                    label: 'Products', data: Object.values(priceRanges),
+                                    backgroundColor: gradient, borderColor: '#10b981', borderWidth: 1, borderRadius: 6,
+                                }]
+                            },
+                            options: {
+                                responsive: true, maintainAspectRatio: false,
+                                plugins: { legend: { display: false } },
+                                scales: { y: { grid: { color: gridColor }, ticks: { color: textColor } }, x: { grid: { display: false }, ticks: { color: textColor } } }
+                            }
+                        });
+                    } else {
+                        const labels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun (Proj)'];
+                        const avg = parseFloat(stats.avg);
+                        const trendData = [avg*0.9, avg*0.95, avg, avg*1.02, avg*1.08, avg*1.15]; 
+                        
+                        const gradient = ctx.createLinearGradient(0, 0, 0, 300);
+                        gradient.addColorStop(0, 'rgba(217, 119, 6, 0.4)'); 
+                        gradient.addColorStop(1, 'rgba(217, 119, 6, 0.0)');
+
+                        chartInstance.current = new Chart(ctx, {
+                            type: 'line',
+                            data: {
+                                labels: labels,
+                                datasets: [{
+                                    label: 'Projected Avg Price', data: trendData,
+                                    backgroundColor: gradient, borderColor: '#d97706', borderWidth: 3, fill: true, tension: 0.4,
+                                    pointBackgroundColor: '#fff', pointBorderColor: '#d97706', pointRadius: 5
+                                }]
+                            },
+                            options: {
+                                responsive: true, maintainAspectRatio: false,
+                                plugins: { legend: { display: false } },
+                                scales: { y: { grid: { color: gridColor }, ticks: { color: textColor } }, x: { grid: { display: false }, ticks: { color: textColor } } }
+                            }
+                        });
+                    }
+                    
+                    return () => {
+                        if (chartInstance.current) {
+                            chartInstance.current.destroy();
+                            chartInstance.current = null;
+                        }
+                    };
+                }
+            }, [data, view, chartMode, theme, stats]);
+
+            return (
+                <div className="py-10 px-4 fade-in">
+                    {/* Hero & Input Section */}
+                    {!data && (
+                        <div className="text-center mb-12 max-w-4xl mx-auto">
+                            <div className="inline-block px-4 py-1.5 rounded-full border border-emerald-500/30 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 text-xs font-bold tracking-wide uppercase mb-6 shadow-sm">
+                                v2.0 Enterprise Engine Now Live
+                            </div>
+                            <h1 className="text-3xl md:text-4xl font-extrabold font-heading mb-4 tracking-tight text-slate-900 dark:text-white leading-tight">
+                                Extract. Analyze. <span className="text-gradient">Dominate.</span>
+                            </h1>
+                            <p className="text-sm md:text-base text-slate-600 dark:text-slate-400 max-w-lg mx-auto mb-8 leading-relaxed">
+                                The most powerful reconnaissance tool for e-commerce. Instantly uncover product catalogs, pricing strategies, and AI audits for any Shopify store.
+                            </p>
+                            
+                            <div className={`w-full max-w-lg mx-auto bg-white dark:bg-slate-900/80 p-1 rounded-xl flex flex-col sm:flex-row items-center gap-1 group transition-all shadow-lg border border-slate-200 dark:border-white/10 relative z-10 ${loading ? 'animate-scan' : ''}`}>
+                                <div className="flex items-center w-full px-4 py-2 sm:py-0">
+                                    <LucideIcon name="search" size={20} className="text-slate-400 dark:text-slate-500 group-focus-within:text-emerald-600 dark:group-focus-within:text-emerald-400 transition-colors" />
+                                    <input 
+                                        type="text" 
+                                        placeholder="Enter shopify store url (e.g. kith.com)" 
+                                        className="bg-transparent border-none outline-none text-slate-900 dark:text-slate-100 flex-grow px-3 text-base w-full ring-0 shadow-none focus:ring-0 placeholder-slate-400 dark:placeholder-slate-600 font-medium"
+                                        value={url}
+                                        onChange={(e) => setUrl(e.target.value)}
+                                        onKeyPress={(e) => e.key === 'Enter' && handleScrape()}
+                                    />
+                                </div>
+                                <Button onClick={handleScrape} disabled={loading} className="w-full sm:w-auto py-1.5 px-4 text-sm font-bold tracking-tight hover:scale-[1.02] active:scale-[0.98] transition-transform glow-emerald rounded-lg">
+                                    {loading ? <LucideIcon name="loader-2" className="animate-spin" size={16} /> : <LucideIcon name="zap" size={16} />}
+                                    {loading ? "Extracting..." : "Scrape"}
+                                </Button>
+                            </div>
+
+                        </div>
+                    )}
+
+                    {error && (
+                        <div className="max-w-3xl mx-auto bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 text-red-700 dark:text-red-400 p-5 rounded-xl mb-12 flex items-center gap-4 fade-in shadow-sm">
+                            <LucideIcon name="alert-triangle" size={24} />
+                            <div><p className="font-bold text-lg">Extraction Failed</p><p className="text-sm">{error}</p></div>
+                        </div>
+                    )}
+
+                    {/* Loading Skeletons */}
+                    {loading && (
+                        <div className="max-w-7xl mx-auto space-y-8 fade-in mt-12">
+                            <div className="flex gap-3"><Skeleton className="h-12 w-28" /><Skeleton className="h-12 w-28" /></div>
+                            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                                <Skeleton className="h-36 rounded-2xl" /><Skeleton className="h-36 rounded-2xl" /><Skeleton className="h-36 rounded-2xl" /><Skeleton className="h-36 rounded-2xl" />
+                                <Skeleton className="md:col-span-3 h-[420px] rounded-2xl" />
+                                <Skeleton className="md:col-span-1 h-[420px] rounded-2xl" />
+                            </div>
+                        </div>
+                    )}
+
+                    {!data && !loading && !error && (
+                        <UseCaseMatrix />
+                    )}
+
+                    {/* Application Results Data */}
+                    {data && !loading && (
+                        <div className="max-w-7xl mx-auto space-y-8 fade-in">
+                            <div className="flex flex-wrap items-center justify-between gap-4">
+                                <div className="flex flex-wrap items-center gap-2 p-1.5 glass rounded-xl w-fit">
+                                    {['dashboard', 'inventory', 'audit', 'security & trust'].map(tab => (
+                                        <button 
+                                            key={tab} onClick={() => setView(tab)} 
+                                            className={`px-6 py-2.5 rounded-lg text-sm font-bold transition-all capitalize ${view === tab ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/20' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5'}`}
+                                        >
+                                            {tab === 'security & trust' ? <span className="flex items-center gap-1.5"><LucideIcon name="shield-check" size={16}/> Trust</span> : tab}
+                                        </button>
+                                    ))}
+                                </div>
+                                <div className="text-sm text-slate-600 dark:text-slate-400 font-mono bg-white dark:bg-slate-900/50 px-4 py-2.5 rounded-lg border border-slate-200 dark:border-white/5 font-medium shadow-sm">
+                                    Target: <span className="text-emerald-700 dark:text-emerald-400 font-bold ml-1">{data.shopUrl.replace('https://','')}</span>
+                                </div>
+                            </div>
+
+                            {view === 'dashboard' && (
+                                <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                                    <div className="glass rounded-[2rem] p-8 border-l-4 border-l-emerald-500 shadow-xl overflow-hidden relative group">
+                                        <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 blur-3xl group-hover:bg-emerald-500/10 transition-all"></div>
+                                        <p className="text-slate-500 dark:text-slate-400 text-xs font-black uppercase tracking-[0.2em] mb-3">Total SKUs</p>
+                                        <h4 className="text-5xl font-black text-slate-900 dark:text-white font-heading">{stats.total}</h4>
+                                    </div>
+                                    <div className="glass rounded-[2rem] p-8 border-l-4 border-l-emerald-500 shadow-xl overflow-hidden relative group">
+                                        <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 blur-3xl group-hover:bg-emerald-500/10 transition-all"></div>
+                                        <p className="text-slate-500 dark:text-slate-400 text-xs font-black uppercase tracking-[0.2em] mb-3">Avg. Price</p>
+                                        <h4 className="text-5xl font-black text-slate-900 dark:text-white font-heading">${stats.avg}</h4>
+                                    </div>
+                                    <div className="glass rounded-[2rem] p-8 border-l-4 border-l-gold-500 shadow-xl overflow-hidden relative group">
+                                        <div className="absolute top-0 right-0 w-32 h-32 bg-gold-500/5 blur-3xl group-hover:bg-gold-500/10 transition-all"></div>
+                                        <p className="text-slate-500 dark:text-slate-400 text-xs font-black uppercase tracking-[0.2em] mb-3">Price Range</p>
+                                        <h4 className="text-4xl font-black text-slate-900 dark:text-white font-heading">${stats.min} - ${stats.max}</h4>
+                                    </div>
+                                    <div className="glass rounded-[2rem] p-8 border-l-4 border-l-emerald-500 shadow-xl overflow-hidden relative group flex flex-col justify-center">
+                                        <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 blur-3xl group-hover:bg-emerald-500/10 transition-all"></div>
+                                        <p className="text-slate-500 dark:text-slate-400 text-xs font-black uppercase tracking-[0.2em] mb-3">Engine Status</p>
+                                        <h4 className="text-2xl font-black text-emerald-600 dark:text-emerald-400 flex items-center gap-2 font-heading"><LucideIcon name="check-circle" size={24}/> Extracted</h4>
+                                    </div>
+
+                                    
+                                    <Card 
+                                        title={chartMode === 'distribution' ? "Pricing Distribution" : "Projected Pricing Trend"} 
+                                        className="md:col-span-3 h-[450px] flex flex-col" 
+                                        icon={<LucideIcon name={chartMode==='distribution' ? "bar-chart-2" : "trending-up"} className={chartMode==='distribution' ? "text-emerald-600 dark:text-emerald-400" : "text-gold-600 dark:text-gold-400"} />}
+                                        titleColor={chartMode==='distribution' ? "" : "text-gold-600 dark:text-gold-400"}
+                                    >
+                                        <div className="flex justify-end mb-6 gap-2">
+                                            <button onClick={()=>setChartMode('distribution')} className={`px-4 py-1.5 text-xs font-bold uppercase tracking-wider rounded-lg transition-colors ${chartMode === 'distribution' ? 'bg-emerald-600 text-white shadow-md' : 'bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-white/10'}`}>Distribution</button>
+                                            <button onClick={()=>setChartMode('projection')} className={`px-4 py-1.5 text-xs font-bold uppercase tracking-wider rounded-lg transition-colors ${chartMode === 'projection' ? 'bg-gold-500 text-white shadow-md' : 'bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-white/10'}`}>ML Projection</button>
+                                        </div>
+                                        <div className="flex-grow relative pb-4"><canvas ref={chartRef}></canvas></div>
+                                    </Card>
+
+                                    <Card title="Export & Sync" className="md:col-span-1 flex flex-col" icon={<LucideIcon name="download" />}>
+                                        <div className="space-y-4 mt-2 flex-grow">
+                                            <Button variant="gold" onClick={exportExcel} className="w-full text-sm py-3.5">
+                                                <LucideIcon name="file-spreadsheet" size={18} /> Export Excel (.xlsx)
+                                            </Button>
+                                            <Button variant="outline" onClick={exportCSV} className="w-full text-sm py-3.5">
+                                                <LucideIcon name="file-text" size={18} /> Export CSV
+                                            </Button>
+                                            <div className="relative py-4">
+                                                <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-slate-200 dark:border-white/10"></div></div>
+                                                <div className="relative flex justify-center"><span className="bg-white dark:bg-[#0f172a] px-2 text-xs text-slate-500 font-bold uppercase">Integrations</span></div>
+                                            </div>
+                                            <Button variant="ghost" className="w-full text-sm py-3 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-transparent hover:border-slate-300 dark:hover:bg-white/10">
+                                                <LucideIcon name="database" size={16} /> Sync to Airtable
+                                            </Button>
+                                            <Button variant="ghost" className="w-full text-sm py-3 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-transparent hover:border-slate-300 dark:hover:bg-white/10">
+                                                <LucideIcon name="layout" size={16} /> Sync to Notion
+                                            </Button>
+                                        </div>
+                                    </Card>
+                                </div>
+                            )}
+
+                            {view === 'inventory' && (
+                                <Card title="Smart Inventory Table" icon={<LucideIcon name="list" />} className="h-[700px] flex flex-col p-0 overflow-hidden shadow-xl">
+                                    <div className="p-5 border-b border-slate-200 dark:border-white/10 flex flex-col sm:flex-row justify-between items-center gap-4 bg-slate-50/50 dark:bg-slate-900/50">
+                                        <div className="w-full sm:w-80 flex items-center bg-white dark:bg-black/20 border border-slate-200 dark:border-slate-700 rounded-xl px-3 focus-within:border-emerald-500 focus-within:ring-2 focus-within:ring-emerald-500/20 transition-all">
+                                            <LucideIcon name="search" size={18} className="text-slate-400" />
+                                            <input 
+                                                type="text" 
+                                                placeholder="Fuzzy search products..." 
+                                                className="w-full bg-transparent border-none outline-none focus:ring-0 text-sm py-2.5 px-3 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500"
+                                                value={searchTerm}
+                                                onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
+                                            />
+                                        </div>
+                                        <div className="text-sm font-semibold text-slate-500 bg-white dark:bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700">
+                                            Showing {paginatedProducts.length} of {filteredAndSortedProducts.length}
+                                        </div>
+                                    </div>
+                                    <div className="overflow-auto flex-grow custom-scrollbar bg-white dark:bg-transparent">
+                                        <table className="w-full text-left border-collapse">
+                                            <thead className="sticky top-0 bg-slate-100 dark:bg-slate-800 z-10 shadow-sm">
+                                                <tr className="text-slate-600 dark:text-slate-300 text-xs uppercase tracking-wider">
+                                                    <th className="p-5 font-bold cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors" onClick={() => handleSort('title')}>Product <SortIcon column="title"/></th>
+                                                    <th className="p-5 font-bold hidden md:table-cell cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors" onClick={() => handleSort('vendor')}>Vendor <SortIcon column="vendor"/></th>
+                                                    <th className="p-5 font-bold hidden sm:table-cell cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors" onClick={() => handleSort('type')}>Type <SortIcon column="type"/></th>
+                                                    <th className="p-5 font-bold text-right cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors" onClick={() => handleSort('price')}>Price <SortIcon column="price"/></th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-slate-100 dark:divide-white/5 relative">
+                                                {paginatedProducts.map(p => (
+                                                    <tr key={p.id} className="hover:bg-slate-50 dark:hover:bg-white/5 transition-colors group">
+                                                        <td className="p-5">
+                                                            <div className="flex items-center gap-4">
+                                                                <div className="w-12 h-12 bg-slate-100 dark:bg-slate-800 rounded-xl overflow-hidden flex-shrink-0 border border-slate-200 dark:border-white/5">
+                                                                    {p.images?.[0] && <img src={p.images[0].src} alt="" className="w-full h-full object-cover" />}
+                                                                </div>
+                                                                <div>
+                                                                    <a href={`${data.shopUrl}/products/${p.handle}`} target="_blank" className="text-sm font-bold text-slate-900 dark:text-slate-100 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors flex items-center gap-1.5">
+                                                                        {p.title} <LucideIcon name="external-link" size={14} className="opacity-0 group-hover:opacity-100 transition-opacity text-slate-400"/>
+                                                                    </a>
+                                                                    <p className="text-[11px] text-slate-500 font-mono mt-1 hidden sm:block truncate max-w-[200px] md:max-w-xs">{p.handle}</p>
+                                                                </div>
+                                                            </div>
+                                                        </td>
+                                                        <td className="p-5 text-sm text-slate-600 dark:text-slate-300 hidden md:table-cell font-medium">{p.vendor}</td>
+                                                        <td className="p-5 hidden sm:table-cell">
+                                                            <span className="px-3 py-1 bg-slate-100 dark:bg-emerald-500/10 text-slate-700 dark:text-emerald-400 border border-slate-200 dark:border-emerald-500/20 rounded-md text-[11px] font-bold whitespace-nowrap">{p.product_type || 'Uncategorized'}</span>
+                                                        </td>
+                                                        <td className="p-5 text-base font-extrabold text-slate-900 dark:text-white text-right">${p.variants[0].price}</td>
+                                                    </tr>
+                                                ))}
+                                                {paginatedProducts.length === 0 && (
+                                                    <tr><td colSpan="4" className="p-12 text-center text-slate-500 font-medium">No products found matching your search criteria.</td></tr>
+                                                )}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    <div className="p-5 border-t border-slate-200 dark:border-white/10 flex items-center justify-between bg-slate-50/50 dark:bg-slate-900/50">
+                                        <Button variant="outline" disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)} className="py-2 px-4 text-sm font-bold"><LucideIcon name="chevron-left" size={16}/> Previous</Button>
+                                        <span className="text-sm text-slate-700 dark:text-slate-300 font-bold bg-white dark:bg-slate-800 px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-700">Page {currentPage} of {Math.max(1, totalPages)}</span>
+                                        <Button variant="outline" disabled={currentPage >= totalPages} onClick={() => setCurrentPage(p => p + 1)} className="py-2 px-4 text-sm font-bold">Next <LucideIcon name="chevron-right" size={16}/></Button>
+                                    </div>
+                                </Card>
+                            )}
+
+                            {view === 'audit' && audit && (
+                                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 fade-in">
+                                    <div className="lg:col-span-2 space-y-6">
+                                        <Card title="Strategic AI Audit" icon={<LucideIcon name="brain" className="text-emerald-600 dark:text-emerald-400"/>}>
+                                            <div className="space-y-6">
+                                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                                                    <div className="bg-slate-50 dark:bg-white/5 p-5 rounded-2xl border border-slate-200 dark:border-white/5">
+                                                        <h4 className="text-emerald-600 dark:text-emerald-400 text-xs font-bold uppercase tracking-widest mb-3">Detected Niche</h4>
+                                                        <p className="text-xl text-slate-900 dark:text-white font-bold">{audit.niche}</p>
+                                                    </div>
+                                                    <div className="bg-slate-50 dark:bg-white/5 p-5 rounded-2xl border border-slate-200 dark:border-white/5">
+                                                        <h4 className="text-emerald-600 dark:text-emerald-400 text-xs font-bold uppercase tracking-widest mb-3">Pricing Strategy</h4>
+                                                        <p className="text-xl text-slate-900 dark:text-white font-bold">{audit.priceStrategy}</p>
+                                                    </div>
+                                                </div>
+                                                <div className="bg-slate-50 dark:bg-white/5 p-6 rounded-2xl border border-slate-200 dark:border-white/5">
+                                                    <h4 className="text-slate-500 dark:text-slate-400 text-xs font-bold uppercase tracking-widest mb-3">Audience Persona</h4>
+                                                    <p className="text-slate-700 dark:text-slate-300 font-medium leading-relaxed">{audit.targetAudience}</p>
+                                                </div>
+                                            </div>
+                                        </Card>
+
+                                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                                            {audit.suggestions.map((s, i) => (
+                                                <div key={i} className="glass p-6 rounded-2xl border-t-4 border-t-emerald-500 shadow-lg">
+                                                    <LucideIcon name="lightbulb" className="text-emerald-500 mb-4" size={24} />
+                                                    <p className="text-sm text-slate-700 dark:text-slate-300 font-medium leading-relaxed">{s}</p>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-6">
+                                        <Card title="Competitive Score" className="text-center pb-8" noHover>
+                                            <div className="relative inline-flex items-center justify-center mt-8 mb-6">
+                                                <svg className="w-48 h-48 transform -rotate-90">
+                                                    <circle className="text-slate-200 dark:text-slate-800" strokeWidth="10" stroke="currentColor" fill="transparent" r="85" cx="96" cy="96" />
+                                                    <circle className="text-gold-500 drop-shadow-xl transition-all duration-1000 ease-out" strokeWidth="10" strokeDasharray={2 * Math.PI * 85} strokeDashoffset={2 * Math.PI * 85 * (1 - (audit.score/100))} strokeLinecap="round" stroke="currentColor" fill="transparent" r="85" cx="96" cy="96" />
+                                                </svg>
+                                                <div className="absolute flex flex-col items-center">
+                                                    <span className="text-6xl font-extrabold text-slate-900 dark:text-white font-heading">{audit.score}</span>
+                                                    <span className="text-sm text-gold-600 dark:text-gold-400 font-bold tracking-widest mt-1 uppercase">/ 100</span>
+                                                </div>
+                                            </div>
+                                            <p className="text-slate-500 dark:text-slate-400 text-sm px-6 font-medium leading-relaxed">Based on product density, average pricing models, and categorization hygiene.</p>
+                                        </Card>
+                                    </div>
+                                </div>
+                            )}
+
+                            {view === 'security & trust' && trustScore && (
+                                <div className="max-w-4xl mx-auto space-y-6 fade-in">
+                                    <Card title="Authenticity & Linguistic ML Analysis" icon={<LucideIcon name="shield-check" className="text-gold-500" />} titleColor="text-gold-600 dark:text-gold-400">
+                                        <div className="flex flex-col md:flex-row gap-10 items-center md:items-start mb-10 pb-8 border-b border-slate-100 dark:border-white/5">
+                                            <div className="flex-shrink-0 text-center">
+                                                <div className={`w-36 h-36 rounded-full border-4 flex flex-col items-center justify-center shadow-2xl ${trustScore.score > 70 ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20' : 'border-gold-500 bg-gold-50 dark:bg-gold-900/20'}`}>
+                                                    <span className={`text-5xl font-extrabold font-heading ${trustScore.score > 70 ? 'text-emerald-600 dark:text-emerald-400' : 'text-gold-600 dark:text-gold-400'}`}>{trustScore.score}</span>
+                                                    <span className="text-xs font-bold text-slate-500 uppercase mt-2 tracking-widest">Trust Index</span>
+                                                </div>
+                                            </div>
+                                            <div className="flex-grow">
+                                                <h4 className="text-xl font-bold text-slate-900 dark:text-white mb-3">Automated Dropship Detection</h4>
+                                                <p className="text-slate-600 dark:text-slate-400 text-base leading-relaxed mb-4">
+                                                    Our proprietary linguistic engine analyzes product catalog footprints, metadata hygiene, and vendor clustering to determine the likelihood of white-labeled dropshipping versus authentic brand ownership.
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        <h4 className="font-bold text-slate-900 dark:text-white mb-6 uppercase tracking-wider text-sm">Security Metrics Breakdown</h4>
+                                        <div className="space-y-4">
+                                            {trustScore.metrics.map((m, i) => (
+                                                <div key={i} className="flex items-start gap-5 p-5 rounded-2xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-white/5 hover:border-emerald-500/30 transition-colors">
+                                                    <div className={`mt-0.5 ${m.passed ? 'text-emerald-500' : 'text-gold-500'}`}>
+                                                        <LucideIcon name={m.passed ? 'check-circle-2' : 'alert-circle'} size={24} />
+                                                    </div>
+                                                    <div>
+                                                        <h5 className="font-bold text-slate-900 dark:text-white text-base mb-1">{m.label}</h5>
+                                                        <p className="text-slate-500 dark:text-slate-400 text-sm leading-relaxed">{m.desc}</p>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </Card>
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        const LoginPage = ({ onAuth }) => {
+            const [isLogin, setIsLogin] = useState(true);
+            const [email, setEmail] = useState('');
+            const [password, setPassword] = useState('');
+            const [name, setName] = useState('');
+
+            const handleSubmit = (e) => {
+                e.preventDefault();
+                if (!email || !password) return;
+                onAuth({ name: isLogin ? (email.split('@')[0] || 'User') : name, email });
+            };
+
+            return (
+                <div className="min-h-[100vh] flex items-center justify-center px-4 py-12 relative overflow-hidden">
+                    <div className="w-full max-w-md glass-panel p-10 rounded-[2rem] shadow-2xl relative z-10 overflow-hidden border border-slate-200 dark:border-slate-800">
+                        <div className="absolute -top-12 -right-12 w-40 h-40 bg-emerald-500/20 blur-3xl rounded-full"></div>
+                        <div className="absolute -bottom-12 -left-12 w-40 h-40 bg-emerald-500/10 blur-3xl rounded-full"></div>
+                        
+                        <div className="text-center mb-10 relative z-10">
+                            <div className="bg-emerald-100 dark:bg-emerald-500/20 p-4 rounded-2xl text-emerald-600 dark:text-emerald-400 w-fit mx-auto mb-5 shadow-inner">
+                                <LucideIcon name="lock" size={32} />
+                            </div>
+                            <h2 className="text-3xl font-extrabold font-heading text-slate-900 dark:text-white mb-2 tracking-tight">
+                                {isLogin ? 'Welcome Back' : 'Create Account'}
+                            </h2>
+                            <p className="text-slate-500 dark:text-slate-400 font-medium">
+                                {isLogin ? 'Sign in to access your dashboard' : 'Join the enterprise platform'}
+                            </p>
+                        </div>
+
+                        <form className="space-y-5 relative z-10" onSubmit={handleSubmit}>
+                            {!isLogin && (
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">Full Name</label>
+                                    <div className="relative">
+                                        <LucideIcon name="user" size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                                        <input type="text" value={name} onChange={e=>setName(e.target.value)} required placeholder="John Doe" className="w-full pl-12 pr-5 py-3.5 rounded-xl bg-white dark:bg-black/20 border-slate-200 dark:border-slate-800 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all font-medium text-sm text-slate-900 dark:text-white" />
+                                    </div>
+                                </div>
+                            )}
+                            <div className="space-y-2">
+                                <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">Work Email</label>
+                                <div className="relative">
+                                    <LucideIcon name="mail" size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                                    <input type="email" value={email} onChange={e=>setEmail(e.target.value)} required placeholder="name@company.com" className="w-full pl-12 pr-5 py-3.5 rounded-xl bg-white dark:bg-black/20 border-slate-200 dark:border-slate-800 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all font-medium text-sm text-slate-900 dark:text-white" />
+                                </div>
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">Password</label>
+                                <div className="relative">
+                                    <LucideIcon name="key" size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                                    <input type="password" value={password} onChange={e=>setPassword(e.target.value)} required placeholder="••••••••" className="w-full pl-12 pr-5 py-3.5 rounded-xl bg-white dark:bg-black/20 border-slate-200 dark:border-slate-800 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all font-medium text-sm text-slate-900 dark:text-white" />
+                                </div>
+                            </div>
+                            
+                            {isLogin && (
+                                <div className="flex items-center justify-between text-xs font-bold px-1">
+                                    <label className="flex items-center gap-2 cursor-pointer text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 transition-colors">
+                                        <input type="checkbox" className="rounded border-slate-300 dark:border-slate-700 text-emerald-600 focus:ring-emerald-500 bg-transparent" /> Remember me
+                                    </label>
+                                    <a href="#" className="text-emerald-600 dark:text-emerald-400 hover:text-emerald-500 transition-colors">Forgot password?</a>
+                                </div>
+                            )}
+
+                            <Button variant="primary" className="w-full py-4 text-base font-extrabold shadow-xl shadow-emerald-500/20 mt-2">
+                                {isLogin ? 'Sign In Securely' : 'Create Account'}
+                            </Button>
+                            
+                            <p className="text-center text-sm text-slate-500 dark:text-slate-400 mt-6 font-medium">
+                                {isLogin ? "Don't have an account?" : "Already have an account?"} {' '}
+                                <button type="button" onClick={() => setIsLogin(!isLogin)} className="text-emerald-600 dark:text-emerald-400 font-bold hover:underline transition-all">
+                                    {isLogin ? 'Create one now' : 'Sign in instead'}
+                                </button>
+                            </p>
+                        </form>
+                    </div>
+                </div>
+            );
+        };
+
+        const WhatsAppWidget = () => {
+            const [showTooltip, setShowTooltip] = useState(false);
+            
+            useEffect(() => {
+                const timer = setTimeout(() => setShowTooltip(true), 2000);
+                const hideTimer = setTimeout(() => setShowTooltip(false), 6000);
+                return () => { clearTimeout(timer); clearTimeout(hideTimer); };
+            }, []);
+
+            return (
+                <div className="fixed bottom-6 right-6 z-50 flex items-end gap-2 group">
+                    <div className={`transition-all duration-300 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl px-4 py-2.5 shadow-xl text-sm text-slate-700 dark:text-slate-300 font-medium whitespace-nowrap mr-1 mb-1 ${showTooltip ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-4 group-hover:opacity-100 group-hover:translate-x-0'}`}>
+                        👋 Chat with Support
+                    </div>
+                    <a 
+                        href="https://wa.me/923270093063" 
+                        target="_blank" 
+                        rel="noreferrer"
+                        className="w-14 h-14 bg-[#25D366] hover:bg-[#22c55e] text-white rounded-full flex items-center justify-center shadow-2xl shadow-green-500/30 transition-all hover:scale-110 active:scale-95"
+                        aria-label="WhatsApp Support"
+                    >
+                        <svg viewBox="0 0 24 24" className="w-7 h-7 fill-current" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+                        </svg>
+                    </a>
+                </div>
+            );
+        };
+
+        const Footer = ({ setCurrentRoute }) => (
+            <footer className="border-t border-slate-200 dark:border-white/5 bg-slate-100 dark:bg-[#020617] mt-auto pt-10 pb-6 transition-colors duration-300">
+                <div className="max-w-7xl mx-auto px-4 grid grid-cols-1 md:grid-cols-4 gap-8 mb-10">
+                    <div className="md:col-span-2">
+                        <div className="flex items-center gap-2 mb-4 cursor-pointer" onClick={() => setCurrentRoute('home')}>
+                            <div className="bg-emerald-100 dark:bg-emerald-500/20 p-2 rounded-xl text-emerald-600 dark:text-emerald-400">
+                                <LucideIcon name="shopping-bag" size={24} />
+                            </div>
+                            <span className="font-heading font-extrabold text-2xl text-slate-900 dark:text-white">Shop<span className="text-emerald-600 dark:text-emerald-500">-Scraper</span></span>
+                        </div>
+                        <p className="text-slate-500 dark:text-slate-400 text-base max-w-sm leading-relaxed">Enterprise product intelligence platform. Extract, analyze, and dominate your e-commerce niche with our proprietary extraction engine.</p>
+                    </div>
+                    <div>
+                        <h4 className="text-slate-900 dark:text-white font-bold mb-6 tracking-wider uppercase text-sm">Product</h4>
+                        <ul className="space-y-3 text-base font-medium text-slate-500 dark:text-slate-400">
+                            <li><button onClick={() => setCurrentRoute('home')} className="hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors">Platform</button></li>
+                            <li><button onClick={() => setCurrentRoute('pricing')} className="hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors">Pricing</button></li>
+                            <li><button onClick={() => setCurrentRoute('reviews')} className="hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors">Reviews</button></li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h4 className="text-slate-900 dark:text-white font-bold mb-6 tracking-wider uppercase text-sm">Company</h4>
+                        <ul className="space-y-3 text-base font-medium text-slate-500 dark:text-slate-400">
+                            <li><button onClick={() => setCurrentRoute('about')} className="hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors">About Us</button></li>
+                            <li><button onClick={() => setCurrentRoute('contact')} className="hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors">Contact</button></li>
+                            <li><a href="https://wa.me/923270093063" target="_blank" rel="noreferrer" className="hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors flex items-center gap-2"><LucideIcon name="message-circle" size={16}/> Support (+92 3270093063)</a></li>
+                        </ul>
+                    </div>
+                </div>
+                <div className="text-center text-slate-400 dark:text-slate-500 text-sm font-medium border-t border-slate-200 dark:border-white/5 pt-8">
+                    &copy; 2026 Shop-Scraper AI Inc. All rights reserved. Powered by Hasnain360.
+                </div>
+            </footer>
+        );
+
+        // --- Main App Wrapper ---
+
+        function App() {
+            const [user, setUser] = useState(() => {
+                try { return JSON.parse(localStorage.getItem('ss_user')); } catch { return null; }
+            });
+            const [currentRoute, setCurrentRoute] = useState('home');
+            const [theme, setTheme] = useState('light');
+            const [checkoutTier, setCheckoutTier] = useState(null);
+
+            const handleAuth = (userData) => {
+                localStorage.setItem('ss_user', JSON.stringify(userData));
+                setUser(userData);
+            };
+
+            const handleLogout = () => {
+                localStorage.removeItem('ss_user');
+                setUser(null);
+                setCurrentRoute('home');
+            };
+
+            const toggleTheme = () => {
+                const newTheme = theme === 'dark' ? 'light' : 'dark';
+                setTheme(newTheme);
+                if (newTheme === 'dark') {
+                    document.documentElement.classList.add('dark');
+                } else {
+                    document.documentElement.classList.remove('dark');
+                }
+            };
+
+            // Ensure initial class
+            useEffect(() => {
+                if (theme === 'dark') document.documentElement.classList.add('dark');
+            }, []);
+
+            // Scroll to top on route change
+            useEffect(() => { window.scrollTo({ top: 0, behavior: 'smooth' }); }, [currentRoute]);
+
+            if (!user) {
+                return (
+                    <div className="min-h-screen flex flex-col font-sans relative">
+                        <div className="absolute top-4 right-4 z-50">
+                            <button onClick={toggleTheme} className="p-2 rounded-lg text-slate-500 bg-white/50 dark:bg-black/50 backdrop-blur hover:bg-white dark:hover:bg-slate-800 transition-colors shadow-sm">
+                                <LucideIcon name={theme === 'dark' ? 'sun' : 'moon'} size={20} />
+                            </button>
+                        </div>
+                        <LoginPage onAuth={handleAuth} />
+                        <WhatsAppWidget />
+                    </div>
+                );
+            }
+
+            return (
+                <div className="min-h-screen flex flex-col font-sans relative">
+                    <Navbar currentRoute={currentRoute} setCurrentRoute={setCurrentRoute} theme={theme} toggleTheme={toggleTheme} user={user} onLogout={handleLogout} />
+                    
+                    <main className="flex-grow pt-20"> 
+                        {currentRoute === 'home' && <ScraperTool theme={theme} />}
+                        {currentRoute === 'about' && <AboutSection />}
+                        {currentRoute === 'pricing' && <PricingSection onCheckout={setCheckoutTier} />}
+                        {currentRoute === 'reviews' && <ReviewsSection />}
+                        {currentRoute === 'contact' && <ContactSection />}
+                    </main>
+
+                    <Footer setCurrentRoute={setCurrentRoute} />
+                    <WhatsAppWidget />
+                    
+                    {/* Modals */}
+                    {checkoutTier && <CheckoutModal tier={checkoutTier} onClose={() => setCheckoutTier(null)} onComplete={() => {setCheckoutTier(null); setCurrentRoute('home');}} />}
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
